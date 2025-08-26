@@ -1,0 +1,58 @@
+envs:
+  legacy:
+    base_url: "https://www.google.com/"
+  modern:
+    base_url: "https://www.google.com/"
+
+browser: "chrome"
+headless: false
+implicit_wait_seconds: 2
+page_load_timeout_seconds: 30
+screenshot_dir: "artifacts/screenshots"
+auto_collect_body_similarity: 0.9
+table_preview_rows: 5
+
+
+browser_management:
+  use_single_browser: false  # Set to true to use single browser with tabs
+  tab_isolation: true        # When using single browser, isolate tab contexts
+  clear_state_between_tabs: true  # Clear cookies/storage between tab switches
+  tab_switch_delay: 0.5      # Delay in seconds when switching tabs
+
+highlight:
+  enabled: true
+  duration_ms: 1500
+  color: "#ff00ff"
+  selectors:
+    - "h1"
+    - "h1,h2,h3"
+    - "nav a"
+    - "button, a[role='button'], input[type='button'], input[type='submit']"
+  selectors_by_route:
+    "/":
+      - "input[name='q']"
+      - "input[type='submit']"
+
+checks:
+  links_map: true
+  forms_required_fields: true
+  table_preview: true
+  meta: true
+  a11y: true
+  head_meta_extended: true
+  breadcrumbs: true
+  tabs: true
+  accordions: true
+  pagination: true
+  form_details: true
+  widgets: true
+  images_preview: true
+  landmarks: true
+  interactive_roles: true
+  i18n: true
+  performance: true
+
+limits:
+  images_preview: 10
+  form_options: 10
+  interactive_roles: 50
