@@ -1,0 +1,68 @@
+UICompare: Process & Flow Document
+Overview
+UICompare is a Python framework for automated UI comparison and testing. It supports visual, text, and structural comparisons between legacy and modern web pages.
+
+1. Setup & Configuration
+Clone the repository and install dependencies from requirements.txt.
+Configure test settings in framework/config/settings.yaml.
+Define page mappings in tests/mappings/ (e.g., homepage.yaml).
+
+2. Test Execution Flow
+Test Initialization
+
+Pytest loads test cases from tests.
+Drivers (e.g., Selenium) are initialized via framework/core/driver_factory.py.
+Page Loading
+
+Legacy and modern URLs are loaded in separate browser instances.
+Wait for document readiness.
+Highlighting Elements
+
+If enabled in settings, key elements are highlighted using highlight.py.
+Data Collection
+
+Page data (titles, headings, links, forms, tables, etc.) is collected using utility functions in framework/utils/collectors.py.
+Comparison
+
+Comparators in framework/comparators/ perform:
+Text comparison (text_compare.py)
+Visual comparison (visual_compare.py)
+Structural comparison (structured_compare.py)
+Differences are logged and, if configured, highlighted in the browser.
+Assertions & Reporting
+
+Each comparison returns a result.
+Failures are reported with details on the difference.
+Screenshots and artifacts are saved in artifacts/.
+Flow of Execution (Step-by-Step)
+
+1. Start test run with pytest (from the command line or CI).
+2. Pytest loads test cases from the tests/ directory.
+3. For each test case:
+	a. Initialize browser drivers for legacy and modern environments.
+	b. Load the target page in both browsers.
+	c. Wait for both pages to be fully loaded.
+	d. (Optional) Highlight key elements if enabled in settings.
+	e. Collect page data: titles, headings, links, forms, tables, etc.
+	f. Run comparison functions (text, visual, structural) on collected data.
+	g. If differences are found:
+		- Log the details.
+		- Highlight differing elements in the browser (if enabled).
+		- Save screenshots and diff artifacts.
+	h. Assert results and report failures with details.
+4. After all tests:
+	- Generate summary reports and save all artifacts in the artifacts/ folder.
+	- Review logs and outputs for any failed comparisons.
+3. Key Modules
+framework/comparators/: Comparison logic (text, visual, structure)
+framework/utils/: Utilities for highlighting, collecting data, logging, screenshots
+framework/core/: Driver management and fixtures
+framework/config/: Configuration loader and settings
+tests: Test cases and mappings
+4. Artifacts & Outputs
+Screenshots, baselines, and diffs are stored in artifacts/.
+Logs and reports are generated for each test run.
+5. Extending the Framework
+Add new comparators in framework/comparators/.
+Update or add new test cases in tests.
+Modify settings and mappings for new pages or environments.
