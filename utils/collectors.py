@@ -145,6 +145,165 @@ def _safe_find_elements(driver: WebDriver, selector: str) -> List[Any]:
 		return []
 
 
+def _get_all_iframes(driver: WebDriver) -> List[Any]:
+	"""Get all iframes in the current page, including nested iframes."""
+	iframes = []
+	try:
+		# Get all iframe elements
+		iframe_elements = driver.find_elements("css selector", "iframe")
+		iframes.extend(iframe_elements)
+		
+		# Also get frame elements (older HTML)
+		frame_elements = driver.find_elements("css selector", "frame")
+		iframes.extend(frame_elements)
+		
+		logger.info(f"Found {len(iframes)} iframe/frame elements")
+		return iframes
+	except Exception as e:
+		logger.warning(f"Failed to get iframes: {e}")
+		return []
+
+
+def _switch_to_iframe_safely(driver: WebDriver, iframe: Any) -> bool:
+	"""Safely switch to an iframe with error handling."""
+	try:
+		# Check if iframe is still attached to DOM
+		if not iframe.is_displayed():
+			logger.debug("Iframe is not displayed, skipping")
+			return False
+		
+		# Get iframe info for logging
+		iframe_info = {
+			'id': iframe.get_attribute('id'),
+			'name': iframe.get_attribute('name'),
+			'src': iframe.get_attribute('src'),
+			'title': iframe.get_attribute('title')
+		}
+		iframe_desc = f"iframe(id={iframe_info['id']}, name={iframe_info['name']}, src={iframe_info['src']})"
+		
+		# Switch to iframe
+		driver.switch_to.frame(iframe)
+		logger.debug(f"Successfully switched to {iframe_desc}")
+		return True
+	except Exception as e:
+		logger.warning(f"Failed to switch to iframe: {e}")
+		return False
+
+
+def _switch_to_default_content(driver: WebDriver) -> None:
+	"""Safely switch back to default content."""
+	try:
+		driver.switch_to.default_content()
+		logger.debug("Switched back to default content")
+	except Exception as e:
+		logger.warning(f"Failed to switch to default content: {e}")
+
+
+def _collect_from_iframe(driver: WebDriver, iframe: Any, collector_func, **kwargs) -> List[Any]:
+	"""Collect elements from a specific iframe using the provided collector function."""
+	results = []
+	
+	try:
+		# Get iframe info BEFORE switching (to avoid stale element reference)
+		iframe_info = {
+			'id': iframe.get_attribute('id'),
+			'name': iframe.get_attribute('name'),
+			'src': iframe.get_attribute('src'),
+			'title': iframe.get_attribute('title')
+		}
+		iframe_desc = f"iframe(id={iframe_info['id']}, name={iframe_info['name']}, src={iframe_info['src']})"
+		
+		logger.info(f"Collecting from {iframe_desc}")
+		
+		# Switch to iframe
+		if not _switch_to_iframe_safely(driver, iframe):
+			return results
+		
+		# Collect elements from this iframe
+		iframe_results = collector_func(driver, **kwargs)
+		
+		# Add iframe context to results
+		if isinstance(iframe_results, (list, tuple)):
+			# Handle list/tuple results
+			for result in iframe_results:
+				if isinstance(result, dict):
+					result['_iframe_context'] = iframe_info
+				elif isinstance(result, str):
+					# Convert string to dict with iframe context
+					results.append({
+						'content': result,
+						'_iframe_context': iframe_info
+					})
+				else:
+					results.append({
+						'element': result,
+						'_iframe_context': iframe_info
+					})
+		else:
+			# Handle single value results (like strings)
+			if isinstance(iframe_results, dict):
+				iframe_results['_iframe_context'] = iframe_info
+				results.append(iframe_results)
+			elif isinstance(iframe_results, str):
+				results.append({
+					'content': iframe_results,
+					'_iframe_context': iframe_info
+				})
+			else:
+				results.append({
+					'element': iframe_results,
+					'_iframe_context': iframe_info
+				})
+		
+		logger.info(f"Collected {len(iframe_results)} elements from {iframe_desc}")
+		
+	except Exception as e:
+		logger.warning(f"Error collecting from iframe: {e}")
+	finally:
+		# Always switch back to default content
+		_switch_to_default_content(driver)
+	
+	return results
+
+
+def _collect_from_all_contexts(driver: WebDriver, collector_func, include_iframes: bool = True, **kwargs) -> List[Any]:
+	"""Collect elements from main document and all iframes."""
+	all_results = []
+	
+	# Collect from main document
+	logger.info("Collecting from main document")
+	main_results = collector_func(driver, **kwargs)
+	
+	# Handle both single values and lists properly
+	if isinstance(main_results, (list, tuple)):
+		all_results.extend(main_results)
+	else:
+		all_results.append(main_results)
+	
+	if not include_iframes:
+		return all_results
+	
+	# Collect from all iframes
+	iframes = _get_all_iframes(driver)
+	if not iframes:
+		logger.info("No iframes found")
+		return all_results
+	
+	logger.info(f"Found {len(iframes)} iframes, collecting from each")
+	
+	for i, iframe in enumerate(iframes):
+		try:
+			iframe_results = _collect_from_iframe(driver, iframe, collector_func, **kwargs)
+			all_results.extend(iframe_results)
+			logger.info(f"Completed iframe {i+1}/{len(iframes)}")
+		except Exception as e:
+			logger.warning(f"Failed to collect from iframe {i+1}: {e}")
+			continue
+	
+	logger.info(f"Total elements collected: {len(all_results)} (main: {len(main_results) if isinstance(main_results, (list, tuple)) else 1}, iframes: {len(all_results) - (len(main_results) if isinstance(main_results, (list, tuple)) else 1)})")
+	return all_results
+
+
 def _highlight_enabled() -> bool:
 	"""Check if highlighting is enabled from environment variable or settings file."""
 	# First check environment variable
@@ -274,6 +433,34 @@ def page_title(driver: WebDriver) -> str:
 	return title
 
 
+def page_title_with_iframes(driver: WebDriver) -> List[Dict[str, Any]]:
+	"""Get page titles from main document and all iframes."""
+	def _collect_title(driver: WebDriver) -> str:
+		try:
+			return (driver.title or "").strip()
+		except Exception:
+			return ""
+	
+	results = _collect_from_all_contexts(driver, _collect_title, include_iframes=True)
+	
+	# Convert results to proper format
+	formatted_results = []
+	for result in results:
+		if isinstance(result, dict) and '_iframe_context' in result:
+			formatted_results.append({
+				'title': result.get('content', ''),
+				'iframe_context': result['_iframe_context']
+			})
+		else:
+			formatted_results.append({
+				'title': result,
+				'iframe_context': {'type': 'main_document'}
+			})
+	
+	logger.info(f"Collected {len(formatted_results)} page titles (including iframes)")
+	return formatted_results
+
+
 def heading_texts(driver: WebDriver) -> List[str]:
 	"""Collect heading texts in top-to-bottom order."""
 	# Get elements in order first
@@ -295,6 +482,40 @@ def heading_texts(driver: WebDriver) -> List[str]:
 	
 	logger.debug(f"Found {len(texts)} headings in order: {texts[:3]}...")  # Log first 3 headings
 	return texts
+
+
+def heading_texts_with_iframes(driver: WebDriver) -> List[Dict[str, Any]]:
+	"""Collect heading texts from main document and all iframes."""
+	def _collect_headings(driver: WebDriver) -> List[str]:
+		elements = _get_elements_in_order(driver, "h1,h2,h3,h4,h5,h6")
+		texts = []
+		for element in elements:
+			try:
+				text = (element.text or "").strip()
+				if text:
+					texts.append(text)
+			except Exception:
+				pass
+		return texts
+	
+	results = _collect_from_all_contexts(driver, _collect_headings, include_iframes=True)
+	
+	# Convert results to proper format
+	formatted_results = []
+	for result in results:
+		if isinstance(result, dict) and '_iframe_context' in result:
+			formatted_results.append({
+				'headings': result.get('content', []),
+				'iframe_context': result['_iframe_context']
+			})
+		else:
+			formatted_results.append({
+				'headings': result,
+				'iframe_context': {'type': 'main_document'}
+			})
+	
+	logger.info(f"Collected headings from {len(formatted_results)} contexts (including iframes)")
+	return formatted_results
 
 
 def primary_h1(driver: WebDriver) -> str:
@@ -341,6 +562,42 @@ def button_texts(driver: WebDriver) -> List[str]:
 	
 	logger.debug(f"Found {len(texts)} buttons in order: {texts[:3]}...")  # Log first 3 buttons
 	return texts
+
+
+def button_texts_with_iframes(driver: WebDriver) -> List[Dict[str, Any]]:
+	"""Collect button texts from main document and all iframes."""
+	def _collect_buttons(driver: WebDriver) -> List[str]:
+		elements = _get_elements_in_order(driver, "button, a[role='button'], input[type='button'], input[type='submit'], [role='button']")
+		texts = []
+		for element in elements:
+			try:
+				if element.is_displayed() and not element.get_attribute('disabled'):
+					text = (element.text or element.get_attribute('value') or 
+							element.get_attribute('aria-label') or "").strip()
+					if text:
+						texts.append(text)
+			except Exception:
+				pass
+		return texts
+	
+	results = _collect_from_all_contexts(driver, _collect_buttons, include_iframes=True)
+	
+	# Convert results to proper format
+	formatted_results = []
+	for result in results:
+		if isinstance(result, dict) and '_iframe_context' in result:
+			formatted_results.append({
+				'buttons': result.get('content', []),
+				'iframe_context': result['_iframe_context']
+			})
+		else:
+			formatted_results.append({
+				'buttons': result,
+				'iframe_context': {'type': 'main_document'}
+			})
+	
+	logger.info(f"Collected buttons from {len(formatted_results)} contexts (including iframes)")
+	return formatted_results
 
 
 def nav_link_texts(driver: WebDriver) -> List[str]:
@@ -427,6 +684,42 @@ def links_map(driver: WebDriver) -> List[Tuple[str, str]]:
 	
 	logger.debug(f"Found {len(result)} links in order")
 	return result
+
+
+def links_map_with_iframes(driver: WebDriver) -> List[Dict[str, Any]]:
+	"""Collect links from main document and all iframes."""
+	def _collect_links(driver: WebDriver) -> List[Tuple[str, str]]:
+		elements = _get_elements_in_order(driver, "a[href]")
+		result = []
+		for element in elements:
+			try:
+				if element.is_displayed():
+					text = (element.text or element.get_attribute('aria-label') or "").strip()
+					href = element.get_attribute('href') or ""
+					if text:
+						result.append((text, normalize_url_path(href)))
+			except Exception:
+				pass
+		return result
+	
+	results = _collect_from_all_contexts(driver, _collect_links, include_iframes=True)
+	
+	# Convert results to proper format
+	formatted_results = []
+	for result in results:
+		if isinstance(result, dict) and '_iframe_context' in result:
+			formatted_results.append({
+				'links': result.get('content', []),
+				'iframe_context': result['_iframe_context']
+			})
+		else:
+			formatted_results.append({
+				'links': result,
+				'iframe_context': {'type': 'main_document'}
+			})
+	
+	logger.info(f"Collected links from {len(formatted_results)} contexts (including iframes)")
+	return formatted_results
 
 
 def collect_form_summary(driver: WebDriver) -> Dict[str, List[str]]:
@@ -2239,3 +2532,115 @@ def get_element_collection_report(driver: WebDriver) -> Dict[str, Any]:
 	}
 	
 	return report
+
+
+def collect_all_iframe_content(driver: WebDriver) -> Dict[str, Any]:
+	"""Collect comprehensive content from all iframes in the page."""
+	iframe_content = {
+		'iframes_found': 0,
+		'iframes_accessible': 0,
+		'iframe_details': [],
+		'total_elements_collected': 0
+	}
+	
+	# Get all iframes
+	iframes = _get_all_iframes(driver)
+	iframe_content['iframes_found'] = len(iframes)
+	
+	if not iframes:
+		logger.info("No iframes found on the page")
+		return iframe_content
+	
+	logger.info(f"Found {len(iframes)} iframes, analyzing each one")
+	
+	for i, iframe in enumerate(iframes):
+		iframe_info = {
+			'index': i,
+			'id': iframe.get_attribute('id'),
+			'name': iframe.get_attribute('name'),
+			'src': iframe.get_attribute('src'),
+			'title': iframe.get_attribute('title'),
+			'width': iframe.get_attribute('width'),
+			'height': iframe.get_attribute('height'),
+			'accessible': False,
+			'content': {}
+		}
+		
+		try:
+			# Try to switch to iframe
+			if _switch_to_iframe_safely(driver, iframe):
+				iframe_info['accessible'] = True
+				iframe_content['iframes_accessible'] += 1
+				
+				# Collect various elements from this iframe
+				iframe_info['content'] = {
+					'title': (driver.title or "").strip(),
+					'headings': heading_texts(driver),
+					'buttons': button_texts(driver),
+					'links': links_map(driver),
+					'forms': collect_form_summary(driver),
+					'tables': collect_table_preview(driver),
+					'body_text': body_text_snapshot(driver, max_len=1000)
+				}
+				
+				# Count total elements
+				total_elements = (
+					len(iframe_info['content']['headings']) +
+					len(iframe_info['content']['buttons']) +
+					len(iframe_info['content']['links'])
+				)
+				iframe_info['total_elements'] = total_elements
+				iframe_content['total_elements_collected'] += total_elements
+				
+				logger.info(f"Iframe {i+1}: {total_elements} elements collected")
+			else:
+				logger.warning(f"Iframe {i+1}: Could not access iframe content")
+				
+		except Exception as e:
+			logger.warning(f"Error analyzing iframe {i+1}: {e}")
+		finally:
+			# Always switch back to default content
+			_switch_to_default_content(driver)
+		
+		iframe_content['iframe_details'].append(iframe_info)
+	
+	logger.info(f"Iframe analysis complete: {iframe_content['iframes_accessible']}/{iframe_content['iframes_found']} iframes accessible")
+	return iframe_content
+
+
+def collect_comprehensive_with_iframes(driver: WebDriver) -> Dict[str, Any]:
+	"""Collect comprehensive content from main document and all iframes."""
+	comprehensive_data = {
+		'main_document': {},
+		'iframes': [],
+		'summary': {
+			'total_iframes': 0,
+			'accessible_iframes': 0,
+			'total_elements': 0
+		}
+	}
+	
+	# Collect from main document
+	logger.info("Collecting from main document")
+	comprehensive_data['main_document'] = {
+		'title': page_title(driver),
+		'headings': heading_texts(driver),
+		'buttons': button_texts(driver),
+		'links': links_map(driver),
+		'forms': collect_form_summary(driver),
+		'tables': collect_table_preview(driver),
+		'meta': collect_meta(driver),
+		'body_text': body_text_snapshot(driver, max_len=2000)
+	}
+	
+	# Collect from all iframes
+	iframe_content = collect_all_iframe_content(driver)
+	comprehensive_data['iframes'] = iframe_content['iframe_details']
+	comprehensive_data['summary'] = {
+		'total_iframes': iframe_content['iframes_found'],
+		'accessible_iframes': iframe_content['iframes_accessible'],
+		'total_elements': iframe_content['total_elements_collected']
+	}
+	
+	logger.info(f"Comprehensive collection complete: {comprehensive_data['summary']['total_elements']} total elements from {comprehensive_data['summary']['accessible_iframes']} iframes")
+	return comprehensive_data

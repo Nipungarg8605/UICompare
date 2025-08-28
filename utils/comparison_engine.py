@@ -23,7 +23,10 @@ from utils.collectors import (
     collect_breadcrumb_lists, collect_feature_lists, collect_all_lists,
     collect_semantic_elements, collect_interactive_elements, collect_form_structure,
     collect_progress_indicators, collect_graphics_elements, collect_all_semantic_content,
-    collect_page_elements_ordered, collect_page_structure_ordered
+    collect_page_elements_ordered, collect_page_structure_ordered,
+    # Iframe-aware collectors
+    page_title_with_iframes, heading_texts_with_iframes, button_texts_with_iframes,
+    links_map_with_iframes, collect_all_iframe_content, collect_comprehensive_with_iframes
 )
 from utils.logging_utils import get_logger
 from utils.test_utilities import TestUtilities
@@ -397,6 +400,113 @@ class ComparisonEngine:
             )
         
         return test_results
+    
+    def run_iframe_comparisons(self, legacy_driver, modern_driver, test_results: Dict) -> Dict:
+        """Run comprehensive iframe-aware comparisons."""
+        logger.info("Running iframe-aware comparisons...")
+        
+        # Iframe-aware page title comparison
+        self.test_utilities.collect_and_compare(
+            legacy_driver, modern_driver,
+            page_title_with_iframes, self._compare_iframe_data,
+            "Page Titles with Iframes", test_results
+        )
+        
+        # Iframe-aware headings comparison
+        self.test_utilities.collect_and_compare(
+            legacy_driver, modern_driver,
+            heading_texts_with_iframes, self._compare_iframe_data,
+            "Headings with Iframes", test_results
+        )
+        
+        # Iframe-aware button texts comparison
+        self.test_utilities.collect_and_compare(
+            legacy_driver, modern_driver,
+            button_texts_with_iframes, self._compare_iframe_data,
+            "Button Texts with Iframes", test_results
+        )
+        
+        # Iframe-aware links comparison
+        self.test_utilities.collect_and_compare(
+            legacy_driver, modern_driver,
+            links_map_with_iframes, self._compare_iframe_data,
+            "Links with Iframes", test_results
+        )
+        
+        # Comprehensive iframe content comparison
+        self.test_utilities.collect_and_compare(
+            legacy_driver, modern_driver,
+            collect_comprehensive_with_iframes, self._compare_comprehensive_iframe_data,
+            "Comprehensive Iframe Content", test_results
+        )
+        
+        return test_results
+    
+    def _compare_iframe_data(self, legacy_data: List[Dict], modern_data: List[Dict]) -> Any:
+        """Compare iframe-aware data structures."""
+        try:
+            # Extract main document data
+            legacy_main = next((item for item in legacy_data if item.get('iframe_context', {}).get('type') == 'main_document'), None)
+            modern_main = next((item for item in modern_data if item.get('iframe_context', {}).get('type') == 'main_document'), None)
+            
+            # Extract iframe data
+            legacy_iframes = [item for item in legacy_data if item.get('iframe_context', {}).get('type') != 'main_document']
+            modern_iframes = [item for item in modern_data if item.get('iframe_context', {}).get('type') != 'main_document']
+            
+            # Compare main document
+            main_comparison = self.comparator.compare_structure(legacy_main, modern_main) if legacy_main and modern_main else None
+            
+            # Compare iframe counts
+            iframe_count_comparison = self.comparator.compare_numeric(len(legacy_iframes), len(modern_iframes))
+            
+            # Compare iframe content (simplified - just count elements)
+            legacy_total_elements = sum(len(item.get('headings', [])) + len(item.get('buttons', [])) + len(item.get('links', [])) for item in legacy_iframes)
+            modern_total_elements = sum(len(item.get('headings', [])) + len(item.get('buttons', [])) + len(item.get('links', [])) for item in modern_iframes)
+            iframe_content_comparison = self.comparator.compare_numeric(legacy_total_elements, modern_total_elements)
+            
+            return {
+                'main_document_match': main_comparison.success if main_comparison else False,
+                'iframe_count_match': iframe_count_comparison.success,
+                'iframe_content_match': iframe_content_comparison.success,
+                'legacy_iframes': len(legacy_iframes),
+                'modern_iframes': len(modern_iframes),
+                'legacy_total_elements': legacy_total_elements,
+                'modern_total_elements': modern_total_elements
+            }
+            
+        except Exception as e:
+            logger.error(f"Error comparing iframe data: {e}")
+            return {'error': str(e)}
+    
+    def _compare_comprehensive_iframe_data(self, legacy_data: Dict, modern_data: Dict) -> Any:
+        """Compare comprehensive iframe data structures."""
+        try:
+            # Compare main document
+            main_doc_comparison = self.comparator.compare_structure(
+                legacy_data.get('main_document', {}),
+                modern_data.get('main_document', {})
+            )
+            
+            # Compare iframe summaries
+            legacy_summary = legacy_data.get('summary', {})
+            modern_summary = modern_data.get('summary', {})
+            
+            iframe_summary_comparison = {
+                'total_iframes_match': legacy_summary.get('total_iframes') == modern_summary.get('total_iframes'),
+                'accessible_iframes_match': legacy_summary.get('accessible_iframes') == modern_summary.get('accessible_iframes'),
+                'total_elements_match': abs(legacy_summary.get('total_elements', 0) - modern_summary.get('total_elements', 0)) <= 5  # Allow small differences
+            }
+            
+            return {
+                'main_document_match': main_doc_comparison.success,
+                'iframe_summary': iframe_summary_comparison,
+                'legacy_summary': legacy_summary,
+                'modern_summary': modern_summary
+            }
+            
+        except Exception as e:
+            logger.error(f"Error comparing comprehensive iframe data: {e}")
+            return {'error': str(e)}
     
     def run_comprehensive_page_comparisons(self, legacy_driver, modern_driver, test_results: Dict) -> Dict:
         """Run comprehensive page structure comparisons."""

@@ -58,6 +58,9 @@ class TestOrchestrator:
             # Comprehensive page comparisons
             test_results = self.comparison_engine.run_comprehensive_page_comparisons(legacy_driver, modern_driver, test_results)
             
+            # Iframe-aware comparisons
+            test_results = self.comparison_engine.run_iframe_comparisons(legacy_driver, modern_driver, test_results)
+            
             logger.info("Completed comprehensive UI comparison test!")
             
         except Exception as e:
