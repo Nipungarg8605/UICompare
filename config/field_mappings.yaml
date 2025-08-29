@@ -1,63 +1,7 @@
-envs:
-  legacy:
-    base_url: "file:///C:/Users/yashi/OneDrive/Desktop/UICompare/test_semantic_page.html"
-  modern:
-    base_url: "file:///C:/Users/yashi/OneDrive/Desktop/UICompare/test_semantic_page.html"
-
-browser: "chrome"
-headless: false
-implicit_wait_seconds: 2
-page_load_timeout_seconds: 30
-screenshot_dir: "artifacts/screenshots"
-auto_collect_body_similarity: 0.9
-table_preview_rows: 5
-
-
-browser_management:
-  use_single_browser: false  # Set to true to use single browser with tabs
-  tab_isolation: true        # When using single browser, isolate tab contexts
-  clear_state_between_tabs: true  # Clear cookies/storage between tab switches
-  tab_switch_delay: 0.5      # Delay in seconds when switching tabs
-
-highlight:
-  enabled: true
-  duration_ms: 1500
-  color: "#ff00ff"
-  selectors:
-    - "h1"
-    - "h1,h2,h3"
-    - "nav a"
-    - "button, a[role='button'], input[type='button'], input[type='submit']"
-  selectors_by_route:
-    "/":
-      - "input[name='q']"
-      - "input[type='submit']"
-
-checks:
-  links_map: true
-  forms_required_fields: true
-  table_preview: true
-  meta: true
-  a11y: true
-  head_meta_extended: true
-  breadcrumbs: true
-  tabs: true
-  accordions: true
-  pagination: true
-  form_details: true
-  widgets: true
-  images_preview: true
-  landmarks: true
-  interactive_roles: true
-  i18n: true
-  performance: true
-
-limits:
-  images_preview: 10
-  form_options: 10
-  interactive_roles: 50
 
 # Field-level logical equivalence mappings
+# Maps legacy Struts elements to modern Angular elements by their functional purpose
+
 field_mappings:
   # Form field mappings
   forms:
@@ -152,12 +96,24 @@ field_mappings:
       grid: ".grid, .mat-grid, [role='grid'], div[class*='grid']"
       card: ".card, .mat-card, [role='article'], div[class*='card']"
 
+  # Status and feedback mappings
+  status:
+    legacy:
+      success_message: ".success, .message, div[class*='success'], span[class*='success']"
+      error_message: ".error, .alert, div[class*='error'], span[class*='error']"
+      loading_indicator: ".loading, .spinner, img[src*='loading'], div[class*='loading']"
+    modern:
+      success_message: ".success, .mat-snack-bar, [role='alert'][aria-live='polite'], div[class*='success']"
+      error_message: ".error, .mat-error, [role='alert'][aria-live='assertive'], div[class*='error']"
+      loading_indicator: ".loading, .mat-progress-spinner, [role='progressbar'], div[class*='loading']"
+
 # Semantic equivalence rules
 semantic_rules:
   # Form field types that are functionally equivalent
   field_types:
     text_input: ["input[type='text']", "input:not([type])", "input[formControlName]", "input[data-testid]"]
-    email_input: ["input[type='email']", "input[name*='email']", "input[id*='email']"]
+    email_input: ["input[type='email']", "input[name*='email']", "i
+    nput[id*='email']"]
     password_input: ["input[type='password']", "input[name*='password']", "input[id*='password']"]
     number_input: ["input[type='number']", "input[name*='number']", "input[id*='number']"]
     select_dropdown: ["select", "mat-select", "[role='combobox']", ".dropdown"]
@@ -189,3 +145,4 @@ comparison_settings:
     - ["span", "p", "div"]
     - ["ul", "ol", "div[role='list']"]
     - ["table", "div[role='table']", "div.grid"]
+

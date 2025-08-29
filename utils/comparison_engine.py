@@ -26,10 +26,12 @@ from utils.collectors import (
     collect_page_elements_ordered, collect_page_structure_ordered,
     # Iframe-aware collectors
     page_title_with_iframes, heading_texts_with_iframes, button_texts_with_iframes,
-    links_map_with_iframes, collect_all_iframe_content, collect_comprehensive_with_iframes
+    links_map_with_iframes, collect_all_iframe_content, collect_comprehensive_with_iframes,
+    _collect_from_all_contexts
 )
 from utils.logging_utils import get_logger
 from utils.test_utilities import TestUtilities
+from utils.semantic_field_comparator import SemanticFieldComparator
 
 logger = get_logger("comparison_engine")
 
@@ -43,6 +45,15 @@ class ComparisonEngine:
         self.comparator = self._get_comparator()
         self.checks = settings.get("checks", {})
         self.limits = settings.get("limits", {})
+        
+        # Initialize semantic field comparator if field mappings are available
+        self.semantic_comparator = None
+        if 'field_mappings' in settings:
+            self.semantic_comparator = SemanticFieldComparator(
+                settings.get('field_mappings', {}),
+                settings.get('semantic_rules', {}),
+                settings.get('comparison_settings', {})
+            )
     
     def _get_comparator(self) -> IntegratedComparator:
         """Get configured comparator instance with enhanced options."""
@@ -535,6 +546,94 @@ class ComparisonEngine:
                 collect_page_structure, self.comparator.compare_page_structure,
                 "Page Structure", test_results
             )
+        
+        return test_results
+    
+    def run_semantic_field_comparisons(self, legacy_driver, modern_driver, test_results: Dict) -> Dict:
+        """Run semantic field-level comparisons for logical equivalence."""
+        logger.info("Running semantic field-level comparisons...")
+        
+        if not self.semantic_comparator:
+            logger.warning("Semantic field comparator not initialized. Skipping semantic comparisons.")
+            return test_results
+        
+        # Compare form fields semantically
+        form_types = ['login', 'registration', 'search', 'contact']
+        for form_type in form_types:
+            try:
+                form_results = self.semantic_comparator.compare_form_fields(
+                    legacy_driver, modern_driver, form_type
+                )
+                
+                if form_results.get('overall_match', False):
+                    test_results['passed'] += 1
+                    logger.info(f"✅ {form_type.title()} form fields match semantically")
+                else:
+                    test_results['failed'] += 1
+                    logger.warning(f"❌ {form_type.title()} form fields don't match semantically")
+                    logger.info(f"Missing fields: {form_results.get('missing_fields', [])}")
+                    logger.info(f"Extra fields: {form_results.get('extra_fields', [])}")
+                
+            except Exception as e:
+                test_results['errors'] += 1
+                logger.error(f"Error comparing {form_type} form fields: {e}")
+        
+        # Compare navigation elements semantically
+        try:
+            nav_results = self.semantic_comparator.compare_navigation_elements(
+                legacy_driver, modern_driver
+            )
+            
+            if nav_results.get('overall_match', False):
+                test_results['passed'] += 1
+                logger.info("✅ Navigation elements match semantically")
+            else:
+                test_results['failed'] += 1
+                logger.warning("❌ Navigation elements don't match semantically")
+                logger.info(f"Missing nav items: {nav_results.get('missing_nav_items', [])}")
+                logger.info(f"Extra nav items: {nav_results.get('extra_nav_items', [])}")
+                
+        except Exception as e:
+            test_results['errors'] += 1
+            logger.error(f"Error comparing navigation elements: {e}")
+        
+        # Compare action buttons semantically
+        try:
+            action_results = self.semantic_comparator.compare_action_buttons(
+                legacy_driver, modern_driver
+            )
+            
+            if action_results.get('overall_match', False):
+                test_results['passed'] += 1
+                logger.info("✅ Action buttons match semantically")
+            else:
+                test_results['failed'] += 1
+                logger.warning("❌ Action buttons don't match semantically")
+                logger.info(f"Missing actions: {action_results.get('missing_actions', [])}")
+                logger.info(f"Extra actions: {action_results.get('extra_actions', [])}")
+                
+        except Exception as e:
+            test_results['errors'] += 1
+            logger.error(f"Error comparing action buttons: {e}")
+        
+        # Compare data display elements semantically
+        try:
+            display_results = self.semantic_comparator.compare_data_display_elements(
+                legacy_driver, modern_driver
+            )
+            
+            if display_results.get('overall_match', False):
+                test_results['passed'] += 1
+                logger.info("✅ Data display elements match semantically")
+            else:
+                test_results['failed'] += 1
+                logger.warning("❌ Data display elements don't match semantically")
+                logger.info(f"Missing displays: {display_results.get('missing_displays', [])}")
+                logger.info(f"Extra displays: {display_results.get('extra_displays', [])}")
+                
+        except Exception as e:
+            test_results['errors'] += 1
+            logger.error(f"Error comparing data display elements: {e}")
         
         return test_results
     

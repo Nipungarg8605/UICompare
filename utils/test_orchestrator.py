@@ -61,6 +61,9 @@ class TestOrchestrator:
             # Iframe-aware comparisons
             test_results = self.comparison_engine.run_iframe_comparisons(legacy_driver, modern_driver, test_results)
             
+            # Semantic field-level comparisons for logical equivalence
+            test_results = self.comparison_engine.run_semantic_field_comparisons(legacy_driver, modern_driver, test_results)
+            
             logger.info("Completed comprehensive UI comparison test!")
             
         except Exception as e:
