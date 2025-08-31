@@ -406,6 +406,53 @@ class IntegratedComparator:
             logger.error(f"Error in boolean structure comparison: {e}")
             return ComparisonResult(False, f"Boolean structure comparison failed: {e}")
     
+    def compare_structure(self, a: Dict[str, Any], b: Dict[str, Any]) -> ComparisonResult:
+        """Compare general structure of two dictionaries/objects."""
+        try:
+            if not isinstance(a, dict) or not isinstance(b, dict):
+                return ComparisonResult(False, f"Both arguments must be dictionaries, got {type(a)} and {type(b)}")
+            
+            # Compare keys
+            a_keys = set(a.keys())
+            b_keys = set(b.keys())
+            
+            if a_keys != b_keys:
+                missing_in_b = a_keys - b_keys
+                missing_in_a = b_keys - a_keys
+                return ComparisonResult(False, f"Structure keys differ:\nMissing in modern: {missing_in_b}\nMissing in legacy: {missing_in_a}")
+            
+            # Compare values recursively
+            differences = []
+            for key in a_keys:
+                a_val = a[key]
+                b_val = b[key]
+                
+                if isinstance(a_val, dict) and isinstance(b_val, dict):
+                    # Recursive comparison for nested dictionaries
+                    nested_result = self.compare_structure(a_val, b_val)
+                    if not nested_result.success:
+                        differences.append(f"{key}: {nested_result.message}")
+                elif isinstance(a_val, list) and isinstance(b_val, list):
+                    # Compare lists
+                    if len(a_val) != len(b_val):
+                        differences.append(f"{key}: List length differs L={len(a_val)} M={len(b_val)}")
+                    else:
+                        for i, (ai, bi) in enumerate(zip(a_val, b_val)):
+                            if ai != bi:
+                                differences.append(f"{key}[{i}]: L='{ai}' M='{bi}'")
+                else:
+                    # Simple value comparison
+                    if a_val != b_val:
+                        differences.append(f"{key}: L='{a_val}' M='{b_val}'")
+            
+            if differences:
+                return ComparisonResult(False, f"Structure differs:\n" + "\n".join(differences))
+            
+            return ComparisonResult(True, f"Structure matches: {len(a_keys)} keys")
+        except Exception as e:
+            logger.error(f"Error in structure comparison: {e}")
+            return ComparisonResult(False, f"Structure comparison failed: {e}")
+    
     def compare_performance_metrics(self, a: Dict[str, Any], b: Dict[str, Any], tolerance_ms: float = 500.0) -> ComparisonResult:
         """Compare performance metrics with tolerance."""
         try:

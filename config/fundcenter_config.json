@@ -1,0 +1,368 @@
+{
+  "application_name": "FundCenter",
+  "description": "FundCenter Legacy vs Modern Application Comparison",
+  
+  "urls": {
+    "legacy": "sd02.fundcenter.tsudev.seic.com/SEIDesktop/fundCenterHome.do",
+    "modern": "dev.fundcenter.tsudev.seic.com/fundcenter/dashboard"
+  },
+  
+  "browser_management": {
+    "browser": "chrome",
+    "headless": false,
+    "implicit_wait_seconds": 5,
+    "page_load_timeout_seconds": 30
+  },
+  
+  "semantic_fields": {
+    "navigation": {
+      "nav_home": {
+        "selectors": {
+          "legacy": "text:FundCenter Home",
+          "modern": "text:FundCenter Home"
+        },
+        "priority": "high"
+      },
+      "nav_rates": {
+        "selectors": {
+          "legacy": "text:Rates",
+          "modern": "text:Rates"
+        },
+        "priority": "high"
+      },
+      "nav_destinations": {
+        "selectors": {
+          "legacy": "text:Destinations",
+          "modern": "text:Destinations"
+        },
+        "priority": "high"
+      },
+      "nav_masters": {
+        "selectors": {
+          "legacy": "text:Masters",
+          "modern": "text:Masters"
+        },
+        "priority": "high"
+      },
+      "nav_groups": {
+        "selectors": {
+          "legacy": "text:Groups",
+          "modern": "text:Groups"
+        },
+        "priority": "high"
+      },
+      "nav_contacts": {
+        "selectors": {
+          "legacy": "text:Contacts",
+          "modern": "text:Contacts"
+        },
+        "priority": "high"
+      },
+      "nav_calendars": {
+        "selectors": {
+          "legacy": "text:Calendars",
+          "modern": "text:Calendars"
+        },
+        "priority": "high"
+      },
+      "nav_notifications": {
+        "selectors": {
+          "legacy": "text:Notifications",
+          "modern": "text:Notifications"
+        },
+        "priority": "high"
+      },
+      "nav_user_setup": {
+        "selectors": {
+          "legacy": "text:User Setup",
+          "modern": "text:User Setup"
+        },
+        "priority": "high"
+      },
+      "nav_activity_log": {
+        "selectors": {
+          "legacy": "text:Activity Log",
+          "modern": "text:Activity Log"
+        },
+        "priority": "high"
+      },
+      "nav_reports": {
+        "selectors": {
+          "legacy": "text:Reports",
+          "modern": "text:Reports"
+        },
+        "priority": "high"
+      },
+      "nav_fund_reporting": {
+        "selectors": {
+          "legacy": "text:Fund Reporting",
+          "modern": "text:Fund Reporting"
+        },
+        "priority": "high"
+      },
+      "nav_inbound": {
+        "selectors": {
+          "legacy": "text:Inbound",
+          "modern": "text:Inbound"
+        },
+        "priority": "high"
+      },
+      "nav_batch_processing": {
+        "selectors": {
+          "legacy": "text:Batch Processing",
+          "modern": "text:Batch Processing"
+        },
+        "priority": "high"
+      },
+      "nav_monthly_revenue": {
+        "selectors": {
+          "legacy": "text:Monthly Revenue",
+          "modern": "text:Monthly Revenue"
+        },
+        "priority": "high"
+      }
+    },
+    
+    "header": {
+      "brand_logo": {
+        "selectors": {
+          "legacy": "img[alt*='SEI'], img[src*='sei']",
+          "modern": "img[alt*='SEI'], img[src*='sei']"
+        },
+        "priority": "high"
+      },
+      "app_title": {
+        "selectors": {
+          "legacy": "text:FundCenter",
+          "modern": "text:FundCenter"
+        },
+        "priority": "high"
+      },
+      "app_subtitle": {
+        "selectors": {
+          "legacy": "text:Global Funds Services",
+          "modern": "text:Global Fund Services"
+        },
+        "priority": "high"
+      }
+    },
+    
+    "dashboard": {
+      "dashboard_title": {
+        "selectors": {
+          "legacy": "text:FundCenter Dash Board",
+          "modern": "text:FundCenter Dash Board"
+        },
+        "priority": "high"
+      },
+      "rates_tab": {
+        "selectors": {
+          "legacy": "text:Rates",
+          "modern": "text:Rates"
+        },
+        "priority": "high"
+      },
+      "destinations_tab": {
+        "selectors": {
+          "legacy": "text:Destinations",
+          "modern": "text:Destinations"
+        },
+        "priority": "high"
+      }
+    },
+    
+    "search_criteria": {
+      "nav_rate_date_field": {
+        "selectors": {
+          "legacy": "input[name*='date'], input[placeholder*='date']",
+          "modern": "input[name*='date'], input[placeholder*='date']"
+        },
+        "priority": "high"
+      },
+      "search_button": {
+        "selectors": {
+          "legacy": "button:contains('Search'), input[type='submit']",
+          "modern": "button:contains('Search'), input[type='submit']"
+        },
+        "priority": "high"
+      }
+    },
+    
+    "rates_summary": {
+      "rates_warning_message": {
+        "selectors": {
+          "legacy": "text:Rate creation process has not run",
+          "modern": "text:Rate creation process has not run"
+        },
+        "priority": "high"
+      },
+      "rates_table_structure": {
+        "selectors": {
+          "legacy": "table:contains('Rate Summary Information')",
+          "modern": "table:contains('Rate Summary Information')"
+        },
+        "priority": "high"
+      },
+      "rates_total_records": {
+        "selectors": {
+          "legacy": "text:Total Fund Rate Records",
+          "modern": "text:Total Fund Rate Records"
+        },
+        "priority": "high"
+      },
+      "rates_no_data": {
+        "selectors": {
+          "legacy": "text:No Data",
+          "modern": "text:No Data"
+        },
+        "priority": "high"
+      },
+      "rates_incomplete": {
+        "selectors": {
+          "legacy": "text:Incomplete",
+          "modern": "text:Incomplete"
+        },
+        "priority": "high"
+      },
+      "rates_pending_release": {
+        "selectors": {
+          "legacy": "text:Pending Release",
+          "modern": "text:Pending Release"
+        },
+        "priority": "high"
+      },
+      "rates_released": {
+        "selectors": {
+          "legacy": "text:Released",
+          "modern": "text:Released"
+        },
+        "priority": "high"
+      }
+    },
+    
+    "baskets_summary": {
+      "baskets_warning_message": {
+        "selectors": {
+          "legacy": "text:ETF Basket creation process has not run",
+          "modern": null
+        },
+        "priority": "medium"
+      },
+      "baskets_table": {
+        "selectors": {
+          "legacy": "text:Baskets Summary Information",
+          "modern": null
+        },
+        "priority": "medium"
+      }
+    },
+    
+    "valuations_summary": {
+      "valuations_warning_message": {
+        "selectors": {
+          "legacy": "text:Valuations creation process has not run",
+          "modern": null
+        },
+        "priority": "medium"
+      },
+      "valuations_table": {
+        "selectors": {
+          "legacy": "text:Valuations Summary Information",
+          "modern": null
+        },
+        "priority": "medium"
+      }
+    },
+    
+    "footer": {
+      "footer_copyright": {
+        "selectors": {
+          "legacy": "text:©2005-2025 SEI",
+          "modern": "text:©2005-2025 SEI"
+        },
+        "priority": "low"
+      },
+      "footer_privacy": {
+        "selectors": {
+          "legacy": "text:Privacy Policy",
+          "modern": "text:Privacy Policy"
+        },
+        "priority": "low"
+      },
+      "footer_terms": {
+        "selectors": {
+          "legacy": "text:Terms of Use",
+          "modern": "text:Terms of Use"
+        },
+        "priority": "low"
+      }
+    }
+  },
+  
+  "expected_differences": {
+    "missing_in_modern": [
+      "ETF Basket Rates navigation",
+      "ETF Valuation navigation", 
+      "Baskets Summary Information",
+      "Valuations Summary Information",
+      "Production Build Date in footer"
+    ],
+    "format_differences": {
+      "date_format": {
+        "legacy": "MM/DD/YYYY",
+        "modern": "DD/MM/YYYY"
+      },
+      "brand_tagline": {
+        "legacy": "New ways. New answers.",
+        "modern": "Global Fund Services"
+      }
+    },
+    "data_differences": {
+      "rates_total_count": {
+        "legacy": "2482",
+        "modern": "0",
+        "note": "Legacy shows actual data, modern shows placeholder"
+      }
+    }
+  },
+  
+  "test_scenarios": [
+    {
+      "name": "Navigation Structure Validation",
+      "description": "Verify all navigation menu items are present and functional",
+      "priority": "high"
+    },
+    {
+      "name": "Dashboard Content Comparison", 
+      "description": "Compare rates summary tables and warning messages",
+      "priority": "high"
+    },
+    {
+      "name": "Search Functionality Test",
+      "description": "Test date picker and search button behavior",
+      "priority": "high"
+    },
+    {
+      "name": "Data Accuracy Verification",
+      "description": "Verify counts and statuses match between systems",
+      "priority": "medium"
+    },
+    {
+      "name": "Missing Features Documentation",
+      "description": "Document features present in legacy but not in modern",
+      "priority": "medium"
+    }
+  ],
+  
+  "authentication": {
+    "required": true,
+    "type": "form_based",
+    "note": "Both applications require login credentials"
+  },
+  
+  "performance_expectations": {
+    "modern_should_be_faster": true,
+    "modern_should_be_responsive": true,
+    "legacy_should_have_server_side_rendering": true
+  }
+}

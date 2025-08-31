@@ -26,58 +26,8 @@ def _reset_highlighting_tracker(url: str) -> None:
 		_element_collection_stats.clear()
 		logger.debug(f"Reset highlighting tracker for new page: {url}")
 
-def _get_element_id(element: Any) -> str:
-	"""Generate a unique ID for an element to track highlighting."""
-	try:
-		# Try multiple strategies for unique identification
-		strategies = [
-			# Strategy 1: Use ID if available
-			lambda: element.get_attribute('id'),
-			# Strategy 2: Use data-testid if available
-			lambda: element.get_attribute('data-testid'),
-			# Strategy 3: Use aria-label if available
-			lambda: element.get_attribute('aria-label'),
-			# Strategy 4: Use text content + tag name
-			lambda: f"{element.tag_name}_{(element.text or '').strip()[:50]}",
-			# Strategy 5: Use class + tag name
-			lambda: f"{element.tag_name}_{(element.get_attribute('class') or '').split()[0]}",
-			# Strategy 6: Use href for links
-			lambda: f"{element.tag_name}_{(element.get_attribute('href') or '')[:50]}" if element.tag_name == 'a' else None,
-			# Strategy 7: Use position as last resort
-			lambda: f"{element.tag_name}_{element.rect['x']}_{element.rect['y']}_{element.rect['width']}_{element.rect['height']}"
-		]
-		
-		for strategy in strategies:
-			try:
-				result = strategy()
-				if result and result.strip():
-					return f"{element.tag_name}_{result.strip()}"
-			except Exception:
-				continue
-		
-		# Ultimate fallback
-		return f"{element.tag_name}_{id(element)}"
-	except Exception:
-		# If all else fails, use object ID
-		return f"unknown_{id(element)}"
 
-def _is_element_already_highlighted(element: Any) -> bool:
-	"""Check if an element has already been highlighted."""
-	try:
-		element_id = _get_element_id(element)
-		return element_id in _highlighted_elements
-	except Exception as e:
-		logger.debug(f"Error checking if element is highlighted: {e}")
-		return False
 
-def _mark_element_as_highlighted(element: Any) -> None:
-	"""Mark an element as highlighted to prevent duplicates."""
-	try:
-		element_id = _get_element_id(element)
-		_highlighted_elements.add(element_id)
-		logger.debug(f"Marked element as highlighted: {element_id}")
-	except Exception as e:
-		logger.debug(f"Error marking element as highlighted: {e}")
 
 def _get_elements_in_order(driver: WebDriver, selector: str) -> List[Any]:
 	"""Get elements in top-to-bottom order based on their position on the page."""
@@ -1311,7 +1261,9 @@ def collect_data_attributes(driver: WebDriver) -> Dict[str, List[str]]:
 	"""Collect elements with data attributes (common in modern frameworks)."""
 	js = (
 		"""
-		var dataElements = Array.from(document.querySelectorAll('[data-*]'));
+		var dataElements = Array.from(document.querySelectorAll('*')).filter(el => {
+			return Array.from(el.attributes).some(attr => attr.name.startsWith('data-'));
+		});
 		var dataAttrs = {};
 		
 		dataElements.forEach(el => {
@@ -1329,10 +1281,19 @@ def collect_data_attributes(driver: WebDriver) -> Dict[str, List[str]]:
 	)
 	result = _safe_execute_script(driver, js) or {}
 	
-	# Highlight elements with data attributes
+	# Highlight elements with data attributes - use a valid selector approach
 	if _highlight_enabled():
-		elements = _safe_find_elements(driver, "[data-*]")
-		_highlight_elements(driver, elements, "data attributes")
+		# Use a more specific approach to find elements with data attributes
+		elements = _safe_find_elements(driver, "*")
+		data_elements = []
+		for element in elements:
+			try:
+				attributes = element.get_attribute("outerHTML")
+				if attributes and "data-" in attributes:
+					data_elements.append(element)
+			except:
+				continue
+		_highlight_elements(driver, data_elements, "data attributes")
 	
 	logger.debug(f"Found {len(result)} different data attributes")
 	return result
